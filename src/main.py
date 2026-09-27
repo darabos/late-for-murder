@@ -3,7 +3,6 @@ import re
 import textwrap
 
 characters = {
-    "ME": "Detective",
     "ID": "Inspector Discorde",
     "CT": "Count Traffikson",
     "DS": "Doctor Simoal",
@@ -51,25 +50,39 @@ scenes = {
     ("Scotland Yard", "20:29"): """
         We are late. LD survived! Police ask our help to find out who pushed him in the well.
 
-        I arrived later than I intended. [ID] was not waiting for me, but he
+        I arrived later than I intended. [ID] was not waiting for me, but he had left instructions,
+        and the constables directed me to his office. He started talking as soon as I entered.
 
         ID: "We have good news and bad news. The good news is that [Little Dimmy], the boy
-        who fell into the well this morning, has been safely rescued.", Inspector Discorde said
+        who fell into the well this morning, has been safely rescued," Inspector Discorde said
         as soon as I entered his office at the [Scotland Yard].
 
         "And the bad news?" I asked.
 
-        ID: "The bad news is
+        ID: "The bad news is that we have no leads for the murder at [Tonton Coffee House].
+        No leads, except you. The victim was killed when she took your reserved table."
+
+        I paled at the implication. I had to defend myself, and I knew just how I could do that.
+
+        "Please, [ID]," I pleaded. "Allow me to clear my name. I have access to a mystical
+        device that will allow me to scry the identity of the murderer."
+
+        ID: "Very well, sir. I give you until 22:00 to consult the occult and tell us the
+        name of the murderer. Do not be late this time!"
+
+        "I promise I won't be," I said and set out toward [Sandwich Manor], the abandoned mansion
+        of a distant relative of mine.
         """,
     ## The Tools of the Trade
     ("Sandwich Manor", "21:31"): """
         I wanted to reach Sandwich Manor by 21:00, but events once again conspired against me.
         My carriage broke down, I was held up by news of marauding sea lions (false alarm, thank God!),
         and I got lost in the fog. In the end, my trip took twice as long as expected,
-        but I finally made it all the way from the [Scotland Yard].
+        but I finally made it all the way from the [Scotland Yard]. I did not look forward to making
+        the same trek back.
 
         I entered the creepy manor and made my way to the hidden room beneath the stairs.
-        I retrieved the Time Burrower from its dusty wooden box.
+        I retrieved the **Time Burrower** from its dusty wooden box.
         It appeared to be an elaborate combination of a compass and a pocket watch.
         I learned about using it from an old wizard in Kabul.
         He taught me how it could be used to review events of the past, as long as I knew the time and place,
@@ -89,12 +102,25 @@ scenes = {
         "Yes, of course," I said, furiously searching my pockets with sweaty hands. "The murderer is..."
         """,
 }
-for k, v in scenes.items():
+def get_scene_md(key):
+    v = scenes[key]
     v = textwrap.dedent(v)
+    v = v.replace("\n\n", "PARAGRAPH").replace("\n", " ").replace("PARAGRAPH", "\n\n")
+    for s, n in characters.items():
+        v = v.replace(f"[{s}]", f"[{n}]")
+    for s, n in characters.items():
+        if n not in known_characters:
+            v = re.sub(f"^{s}: (.*)", lambda m: "." * len(m.group(1)), v, flags=re.MULTILINE)
+            lines = v.split("\n\n")
+            lines = [s.replace(f"[{n}]", ".....") if s[0] != "\"" else s for s in lines]
+            v = "\n\n".join(lines)
+        else:
+            v = v.replace(f"{s}: ", "")
     v = re.sub(
         r"\[(.*?)\]", lambda m: f"[{m.group(1)}]({m.group(1).replace(' ', '_')})", v
     )
-    scenes[k] = v
+    v = v.replace("\n\n", "\n\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
+    return v
 
 
 def known_scenes_md():
@@ -115,11 +141,14 @@ def known_scenes_md():
     return " ".join(texts)
 
 
-md_style_sheet = ft.MarkdownStyleSheet()
+md_style_sheet = ft.MarkdownStyleSheet(
+    p_text_style=ft.TextStyle(size=18),
+    text_alignment=ft.MainAxisAlignment.SPACE_EVENLY,
+)
 
 
 async def main(page: ft.Page):
-    global current_scene, known_locations, known_scenes
+    global current_scene, known_locations, known_scenes, known_characters
     page.title = "Late for Murder"
     page.fonts = {"Goudy": "fonts/GoudyBookletter1911-Regular.ttf"}
     page.theme = ft.Theme(font_family="Goudy")
@@ -136,28 +165,31 @@ async def main(page: ft.Page):
         if known_scenes
         else {current_scene}
     )
+    await prefs.set("known_characters", [])
     known_characters = await prefs.get("known_characters")
     known_characters = set(known_characters) if known_characters else set()
 
     async def scene_tap_link(e):
-        known_locations.add(e.data.replace("_", " "))
-        await prefs.set("known_locations", sorted(known_locations))
-        burrower_location.options = [
-            ft.DropdownOption(kl) for kl in sorted(known_locations)
-        ]
+        name = e.data.replace("_", " ")
+        if name in characters.values():
+            known_characters.add(name)
+            await prefs.set("known_characters", sorted(known_characters))
+        else:
+            known_locations.add(name)
+            await prefs.set("known_locations", sorted(known_locations))
+            burrower_location.options = [
+                ft.DropdownOption(kl) for kl in sorted(known_locations)
+            ]
+        await set_current_scene(*current_scene)
 
     def use_burrower_clicked(e):
         use_burrower_btn.visible = False
         use_burrower_controls.visible = True
 
     async def burrower_go_clicked(e):
-        global current_scene
         use_burrower_btn.visible = True
         use_burrower_controls.visible = False
-        current_scene = burrower_location.value, burrower_time.value
-        await prefs.set("current_scene", list(current_scene))
-        location_label.value = current_scene[0]
-        time_label.value = current_scene[1]
+        await set_current_scene(burrower_location.value, burrower_time.value)
         if current_scene in scenes:
             scene_text_md.value = scenes[current_scene]
             known_scenes.add(current_scene)
@@ -169,21 +201,24 @@ async def main(page: ft.Page):
         timeline_md.value = known_scenes_md()
 
     async def timeline_click(e):
-        global current_scene
         loc, time = e.data.split("--")
         loc = loc.replace("_", " ")
+        await set_current_scene(loc, time)
+
+    async def set_current_scene(loc, time):
+        global current_scene
         current_scene = loc, time
         await prefs.set("current_scene", list(current_scene))
         location_label.value = loc
         time_label.value = time
-        scene_text_md.value = scenes[current_scene]
+        scene_text_md.value = get_scene_md((loc, time))
         timeline_md.value = known_scenes_md()
 
     timeline_md = ft.Markdown(known_scenes_md(), on_tap_link=timeline_click)
     location_label = ft.Text(current_scene[0], size=25)
     time_label = ft.Text(current_scene[1], weight=ft.FontWeight.BOLD)
     scene_text_md = ft.Markdown(
-        scenes[current_scene],
+        get_scene_md(current_scene),
         on_tap_link=scene_tap_link,
         md_style_sheet=md_style_sheet,
     )
@@ -197,10 +232,11 @@ async def main(page: ft.Page):
         visible=False, controls=[burrower_location, burrower_time, burrower_go_btn]
     )
 
+    page.scroll = ft.ScrollMode.AUTO
     page.add(
         ft.SafeArea(
+            minimum_padding=20,
             content=ft.Column(
-                scroll=ft.ScrollMode.ALWAYS,
                 controls=[
                     timeline_md,
                     ft.Divider(),
