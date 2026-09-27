@@ -1,4 +1,6 @@
-# LateForMurder app
+# Late for Murder
+
+Started past the deadline for PyWeek 42.
 
 ## Run the app
 
