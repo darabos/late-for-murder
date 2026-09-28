@@ -48,10 +48,9 @@ scenes = {
     ("Street", "14:17"): """We are late. Police summons us.""",
     # The Case
     ("Scotland Yard", "20:29"): """
-        We are late. LD survived! Police ask our help to find out who pushed him in the well.
-
-        I arrived later than I intended. [ID] was not waiting for me, but he had left instructions,
-        and the constables directed me to his office. He started talking as soon as I entered.
+        I arrived later than I intended. [ID] was not waiting for me at the entrance,
+        but he had left instructions, and the constables directed me to his office.
+        He started talking as soon as I entered.
 
         ID: "We have good news and bad news. The good news is that [Little Dimmy], the boy
         who fell into the well this morning, has been safely rescued," Inspector Discorde said
@@ -67,7 +66,7 @@ scenes = {
         "Please, [ID]," I pleaded. "Allow me to clear my name. I have access to a mystical
         device that will allow me to scry the identity of the murderer."
 
-        ID: "Very well, sir. I give you until 22:00 to consult the occult and tell us the
+        ID: "Very well, sir. I give you until 22:00 to consult the occult and come back to tell us the
         name of the murderer. Do not be late this time!"
 
         "I promise I won't be," I said and set out toward [Sandwich Manor], the abandoned mansion
@@ -102,6 +101,8 @@ scenes = {
         "Yes, of course," I said, furiously searching my pockets with sweaty hands. "The murderer is..."
         """,
 }
+
+
 def get_scene_md(key):
     v = scenes[key]
     v = textwrap.dedent(v)
@@ -110,9 +111,14 @@ def get_scene_md(key):
         v = v.replace(f"[{s}]", f"[{n}]")
     for s, n in characters.items():
         if n not in known_characters:
-            v = re.sub(f"^{s}: (.*)", lambda m: "." * len(m.group(1)), v, flags=re.MULTILINE)
+            v = re.sub(
+                f"^{s}: (.*)",
+                lambda m: "█" * (len(m.group(1)) // 2),
+                v,
+                flags=re.MULTILINE,
+            )
             lines = v.split("\n\n")
-            lines = [s.replace(f"[{n}]", ".....") if s[0] != "\"" else s for s in lines]
+            lines = [s.replace(f"[{n}]", "███") if s[0] != '"' else s for s in lines]
             v = "\n\n".join(lines)
         else:
             v = v.replace(f"{s}: ", "")
@@ -141,6 +147,14 @@ def known_scenes_md():
     return " ".join(texts)
 
 
+async def load(k):
+    return await ft.SharedPreferences().get(k)
+
+
+async def save(k, v):
+    await ft.SharedPreferences().set(k, v)
+
+
 md_style_sheet = ft.MarkdownStyleSheet(
     p_text_style=ft.TextStyle(size=18),
     text_alignment=ft.MainAxisAlignment.SPACE_EVENLY,
@@ -152,31 +166,31 @@ async def main(page: ft.Page):
     page.title = "Late for Murder"
     page.fonts = {"Goudy": "fonts/GoudyBookletter1911-Regular.ttf"}
     page.theme = ft.Theme(font_family="Goudy")
-    prefs = ft.SharedPreferences()
-    current_scene = await prefs.get("current_scene")
+
+    current_scene = await load("current_scene")
     current_scene = (
         tuple(current_scene) if current_scene else ("Scotland Yard", "22:35")
     )
-    known_locations = await prefs.get("known_locations")
+    known_locations = await load("known_locations")
     known_locations = set(known_locations) if known_locations else {current_scene[0]}
-    known_scenes = await prefs.get("known_scenes")
+    known_scenes = await load("known_scenes")
     known_scenes = (
         {tuple(ks.split("--")) for ks in known_scenes}
         if known_scenes
         else {current_scene}
     )
-    await prefs.set("known_characters", [])
-    known_characters = await prefs.get("known_characters")
+    await save("known_characters", [])
+    known_characters = await load("known_characters")
     known_characters = set(known_characters) if known_characters else set()
 
     async def scene_tap_link(e):
         name = e.data.replace("_", " ")
         if name in characters.values():
             known_characters.add(name)
-            await prefs.set("known_characters", sorted(known_characters))
+            await save("known_characters", sorted(known_characters))
         else:
             known_locations.add(name)
-            await prefs.set("known_locations", sorted(known_locations))
+            await save("known_locations", sorted(known_locations))
             burrower_location.options = [
                 ft.DropdownOption(kl) for kl in sorted(known_locations)
             ]
@@ -193,7 +207,7 @@ async def main(page: ft.Page):
         if current_scene in scenes:
             scene_text_md.value = scenes[current_scene]
             known_scenes.add(current_scene)
-            await prefs.set(
+            await save(
                 "known_scenes", sorted(f"{loc}--{time}" for (loc, time) in known_scenes)
             )
         else:
@@ -208,7 +222,7 @@ async def main(page: ft.Page):
     async def set_current_scene(loc, time):
         global current_scene
         current_scene = loc, time
-        await prefs.set("current_scene", list(current_scene))
+        await save("current_scene", list(current_scene))
         location_label.value = loc
         time_label.value = time
         scene_text_md.value = get_scene_md((loc, time))
@@ -246,7 +260,7 @@ async def main(page: ft.Page):
                     use_burrower_btn,
                     use_burrower_controls,
                 ],
-            )
+            ),
         )
     )
 
