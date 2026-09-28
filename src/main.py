@@ -20,16 +20,15 @@ scenes = {
     # The Revenge
     ("Tonton Coffee House", "11:55"): """DS posions food to kill us.""",
     ("Tonton Coffee House", "12:00"): """
-    It kills LB. DS decides to kill us manually
         The front doors of the [Tonton Coffee House] swung wide open as [Lady Backmeth]
         walked in. As she got older, she made a point of following the latest fashion trends.
         She was dressed today in a fashionable striped black and white skirt, white blouse, and a
         wide-brimmed lace hat, to shield her from the glare of the sun on this early autumn day.
 
-        LB: "I hope it's no trouble, that I've arrived a little earlier than expected, Gustav"
+        LB: "I've arrived a little earlier than expected, Gustav. I hope it's no trouble?"
         she addressed the head waiter hurrying to lead her to her table.
 
-        "No problem at all, my lady. This way, please.  usual?"
+        "No problem at all, my lady. This way, please. Will you have the usual?"
 
         LB: "Not today, Gustav. I want to try the goat cheese salad that [Doctor Simoal] raved about."
 
@@ -37,9 +36,12 @@ scenes = {
 
         [Lady Backmeth] sat down. She read her magazine. Her lunch was served and consumed.
 
-        LB: "Poison!" she croaked.
+        LB: "Poison!" she croaked. Gustav called for help, but it was too late. [LB] was dead.
+
+        Tragic. And I missed it all. I only arrived some time later.
         """,
-    ("Tonton Coffee House", "12:13"): """We are late.""",
+    ("Tonton Coffee House", "12:13"): """
+        We are late. DS decides to kill us manually""",
     ("Tonton Coffee House", "12:30"): """
         CT finds LB, is devastated. Finds that we were the only other reservation at 11:00""",
     # The Re-revenge
@@ -58,7 +60,7 @@ scenes = {
 
         "And the bad news?" I asked.
 
-        ID: "The bad news is that we have no leads for the murder at [Tonton Coffee House].
+        ID: "The bad news is that we have no leads for the murder at the restaurant.
         No leads, except you. The victim was killed when she took your reserved table."
 
         I paled at the implication. I had to defend myself, and I knew just how I could do that.
@@ -104,27 +106,28 @@ scenes = {
 
 
 def get_scene_md(key):
+    if key not in scenes:
+        return "Nothing."
     v = scenes[key]
     v = textwrap.dedent(v)
-    v = v.replace("\n\n", "PARAGRAPH").replace("\n", " ").replace("PARAGRAPH", "\n\n")
+    v = v.replace("\n\n", "PARAGRAPH").replace("\n", " ").replace("PARAGRAPH", "\n\n").strip()
     for s, n in characters.items():
         v = v.replace(f"[{s}]", f"[{n}]")
     for s, n in characters.items():
         if n not in known_characters:
-            v = re.sub(
-                f"^{s}: (.*)",
-                lambda m: "█" * (len(m.group(1)) // 2),
-                v,
-                flags=re.MULTILINE,
-            )
+            v = re.sub( f"^{s}: (.*)", lambda m: "█" * (len(m.group(1)) // 2), v, flags=re.MULTILINE, )
             lines = v.split("\n\n")
             lines = [s.replace(f"[{n}]", "███") if s[0] != '"' else s for s in lines]
             v = "\n\n".join(lines)
         else:
             v = v.replace(f"{s}: ", "")
-    v = re.sub(
-        r"\[(.*?)\]", lambda m: f"[{m.group(1)}]({m.group(1).replace(' ', '_')})", v
-    )
+    def make_link(m):
+        g = m.group(1)
+        if g in known_locations or g in known_characters:
+            return g
+        else:
+            return f"[{g}]({g.replace(' ', '_')})"
+    v = re.sub(r"\[(.*?)\]", make_link, v)
     v = v.replace("\n\n", "\n\n&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;")
     return v
 
@@ -205,13 +208,10 @@ async def main(page: ft.Page):
         use_burrower_controls.visible = False
         await set_current_scene(burrower_location.value, burrower_time.value)
         if current_scene in scenes:
-            scene_text_md.value = scenes[current_scene]
             known_scenes.add(current_scene)
             await save(
                 "known_scenes", sorted(f"{loc}--{time}" for (loc, time) in known_scenes)
             )
-        else:
-            scene_text_md.value = "Nothing"
         timeline_md.value = known_scenes_md()
 
     async def timeline_click(e):
