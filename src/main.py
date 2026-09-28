@@ -8,14 +8,81 @@ characters = {
     "DS": "Doctor Simoal",
     "LB": "Lady Backmeth",
     "LD": "Little Dimmy",
+    "GU": "Gustav",
 }
 
+_planning = {
+    (0, "Scotland Yard", "22:35"): "final scene",
+    (1, "Sandwich Manor", "21:31"): "pick up burrower",
+    (2, "Scotland Yard", "20:29"): "ID tells us LD is alive",
+    (3, "Little Dimmy"): "",
+    (4, "Inspector Discorde"): "",
+    (5, "Tonton Coffee House", "12:00"): "LB dies",
+    (6, "Tonton Coffee House", "12:15"): "We arrive",
+    (7, "Gustav"): "",
+    (8, "Gasworks", "11:45"): "leave for restaurant",
+    (9, "Marple House", "8:00"): "calling ",
+    (10, "Marple House", "8:15"): "go to work ",
+    (11, "Gasworks", "10:10"): "We arrive. DS accuses us.",
+    (12, "Gasworks", "10:00"): "LB seemingly kills LD",
+    (13, "Lady Backbeth"): "",
+    (14, "Count Traffikson"): "",
+    (15, "Gasworks", "10:08"): "DS finds LD and is devastated. Who could have done it?",
+    (16, "Opera", "18:17"): "We are late. Police summons us.",
+    (17, "Opera", "18:00"): "DS arrives to kill us. CT drops piano. Kills DS",
+    (18, "Tonton Coffee House", "12:30"): "CT finds LB, is devastated. Finds that we were the only other reservation at 11:00",
+    (19, "Opera", "17:50"): "CT hoists piano and watches watch.",
+    (20, "Tonton Coffee House", "11:55"): "DS posions food to kill us.",
+    (21, "Doctor Simoal"): "",
+}
+
+_deps = """
+   0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21
+ 0 .  x  x        x
+ 1    .  x        x
+ 2       .  x  x  x
+ 3 LD       .                             x
+ 4 ID    ?     .  x                                ?
+ 5                .  x                       x
+ 6                   .  x  x  x
+ 7 GU                   .           ?  ?        ?
+ 8                         .
+ 9                            .  x
+10                               .
+11                                  .
+12                                     .  x
+13 LB                                     .  x
+14 CT                                        .
+15                                              .
+16                                                 .
+17                                                    .
+18                                                       .
+19                                                          .
+20                                                             .
+21 DS                                                             .
+"""
+
 scenes = {
+    # The Morning
+    ("Marple House", "8:00"): """
+        I was about to leave for the [Gasworks] when I remembered something. I had to place a quick call to
+        the [Tonton Coffee House] in Dampstead.
+
+        "Hello, I'd like to make a reservation," I started. But on the end of the line, I only heard music.
+        "I'm sorry, could you please turn down the music? Hello? Is this Tonton Coffee House? I can't hear
+        you over the music. Can you hear me? Is there a dance party going on there? Please turn it down."
+
+        This fruitless conversation went on for another 15 minutes before I was able to talk to the staff and
+        reserve a table for 12:00. And now I was late for work!
+        """,
     # The Incident
-    ("Well", "10:00"): """LB seemingly kills LD""",
-    ("Well", "10:08"): """DS finds LD and is devastated. Who could have done it?""",
-    ("Well", "10:10"): """
+    ("Gasworks", "10:00"): """LB seemingly kills LD""",
+    ("Gasworks", "10:08"): """DS finds LD and is devastated. Who could have done it?""",
+    ("Gasworks", "10:10"): """
         We arrive. DS asks us if we just arrived. No, we've been here all along.
+        Then it must have been you! What?""",
+    ("Gasworks", "11:45"): """
+        My four-hour shift at the Department of Kinetics and Magnetism was up.
         Then it must have been you! What?""",
     # The Revenge
     ("Tonton Coffee House", "11:55"): """DS posions food to kill us.""",
@@ -25,29 +92,47 @@ scenes = {
         She was dressed today in a fashionable striped black and white skirt, white blouse, and a
         wide-brimmed lace hat, to shield her from the glare of the sun on this early autumn day.
 
-        LB: "I've arrived a little earlier than expected, Gustav. I hope it's no trouble?"
+        LB: "I've arrived a little earlier than expected, [Gustav]. I hope it's no trouble?"
         she addressed the head waiter hurrying to lead her to her table.
 
         "No problem at all, my lady. This way, please. Will you have the usual?"
 
-        LB: "Not today, Gustav. I want to try the goat cheese salad that [Doctor Simoal] raved about."
+        LB: "Not today, [Gustav]. I want to try the goat cheese salad that [CT] raved about."
 
         "Of course."
 
         [Lady Backmeth] sat down. She read her magazine. Her lunch was served and consumed.
 
-        LB: "Poison!" she croaked. Gustav called for help, but it was too late. [LB] was dead.
+        LB: "Poison!" she croaked. [Gustav] called for help, but it was too late. [LB] was dead.
 
-        Tragic. And I missed it all. I only arrived some time later.
+        Tragic. And I missed it all. I only arrived fifteen minutes later.
         """,
-    ("Tonton Coffee House", "12:13"): """
-        We are late. DS decides to kill us manually""",
+    ("Tonton Coffee House", "12:15"): """
+        "Hello, I've placed a reservation for a table this morning," I informed the waiter.
+        "My name's Marble." I spent
+
+        "I don't see it on the reservation sheet," the man said. He flipped back to the previous page
+        and there it was. "There it is! It was for 12:00, wasn't it?"
+
+        Was I being chided by a waiter? There was no way to get here any sooner in this traffic!
+        Half an hour all the way from the [Gasworks] was actually my best time yet. I must have given
+        the waiter quite the glare, for he apologized.
+
+        "I'm sorry, sir. We had a... busy day today," he said. Now that I know about the incident earlier,
+        I am sure that is what he was referring to.
+
+        DS: A man was looking at me! He had been hiding behind a large sheet of newspaper, sitting by the
+        windows. I never noticed him before.
+
+        DS: "So, Marble has dodged the proverbial bullet, has he not?" [DS] uttered and puffed on his cigar.
+        "Let's see them dodge a literal bullet."
+        """,
     ("Tonton Coffee House", "12:30"): """
         CT finds LB, is devastated. Finds that we were the only other reservation at 11:00""",
     # The Re-revenge
-    ("Street", "13:50"): """CT hoists piano and watches watch.""",
-    ("Street", "14:00"): """DS arrives to kill us. CT drops piano. Kills DS""",
-    ("Street", "14:17"): """We are late. Police summons us.""",
+    ("Opera", "17:50"): """CT hoists piano and watches watch.""",
+    ("Opera", "18:00"): """DS arrives to kill us. CT drops piano. Kills DS""",
+    ("Opera", "18:17"): """We are late. Police summons us.""",
     # The Case
     ("Scotland Yard", "20:29"): """
         I arrived later than I intended. [ID] was not waiting for me at the entrance,
